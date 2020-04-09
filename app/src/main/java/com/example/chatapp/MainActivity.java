@@ -162,7 +162,6 @@ public class MainActivity extends AppCompatActivity {
                             if (!task.isSuccessful()) {
                                 throw task.getException();
                             }
-
                             // Continue with the task to get the download URL
                             return referenceToImage.getDownloadUrl();
                         }
