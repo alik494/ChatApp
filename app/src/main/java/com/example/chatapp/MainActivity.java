@@ -53,7 +53,8 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imageViewAddImage;
     private ImageView imageViewSend;
     private FirebaseStorage storage;
-    StorageReference reference;
+    private FirebaseUser user;
+    private StorageReference reference;
 
     private FirebaseAuth mAuth;
 
@@ -77,20 +78,25 @@ public class MainActivity extends AppCompatActivity {
         recyclerViewMessage.setAdapter(adapter);
         messages = new ArrayList<>();
         if (mAuth.getCurrentUser() != null) {
-            FirebaseUser user = mAuth.getCurrentUser();
-            Toast.makeText(this, "logged", Toast.LENGTH_SHORT).show();
+            user = mAuth.getCurrentUser();
+            //Toast.makeText(this, "logged", Toast.LENGTH_SHORT).show();
+            if (user != null) {
+                Toast.makeText(this, "welcome " + user.getDisplayName(), Toast.LENGTH_SHORT).show();
+                author = user.getDisplayName();
+            }
         } else {
             signOut();
         }
         imageViewAddImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent=new Intent(Intent.ACTION_GET_CONTENT);
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.setType("image/jpeg");
-                intent.putExtra(intent.EXTRA_LOCAL_ONLY,true);
+                intent.putExtra(intent.EXTRA_LOCAL_ONLY, true);
                 startActivityForResult(intent, RC_GET_IMAGE);
             }
         });
+
     }
 
     @Override
@@ -133,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onSuccess(DocumentReference documentReference) {
                             recyclerViewMessage.scrollToPosition(adapter.getItemCount() - 1);
-                            Toast.makeText(MainActivity.this, "succes", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MainActivity.this, "succes " + author, Toast.LENGTH_SHORT).show();
                             editTextMessage.setText("");
                         }
                     }).addOnFailureListener(new OnFailureListener() {
@@ -142,7 +148,6 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MainActivity.this, "Fail", Toast.LENGTH_SHORT).show();
                 }
             });
-
         }
     }
 
@@ -150,12 +155,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode==RC_GET_IMAGE&&resultCode==RESULT_OK){
+        if (requestCode == RC_GET_IMAGE && resultCode == RESULT_OK) {
             if (data != null) {
-                Uri uri=data.getData();
+                Uri uri = data.getData();
                 if (uri != null) {
-                   final StorageReference referenceToImage = reference.child("images/"+uri.getLastPathSegment());
-                   referenceToImage.putFile(uri).continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+                    final StorageReference referenceToImage = reference.child("images/" + uri.getLastPathSegment());
+                    referenceToImage.putFile(uri).continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
                         @Override
                         public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
                             if (!task.isSuccessful()) {
@@ -170,7 +175,25 @@ public class MainActivity extends AppCompatActivity {
                             if (task.isSuccessful()) {
                                 Uri downloadUri = task.getResult();
                                 assert downloadUri != null;
-                                Log.i("dfsdfgs",downloadUri.toString());
+                                Log.i("dfsdfgs", downloadUri.toString());
+
+
+                                db.collection("messages")
+                                        .add(new Message(author, downloadUri.toString(), System.currentTimeMillis()))
+                                        .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                                            @Override
+                                            public void onSuccess(DocumentReference documentReference) {
+                                                recyclerViewMessage.scrollToPosition(adapter.getItemCount() - 1);
+                                                Toast.makeText(MainActivity.this, "success", Toast.LENGTH_SHORT).show();
+                                            }
+                                        }).addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        Toast.makeText(MainActivity.this, "Fail", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+
+
                             } else {
                                 // Handle failures
                                 // ...
@@ -182,10 +205,9 @@ public class MainActivity extends AppCompatActivity {
         }
         if (requestCode == RC_SIGN_IN) {
             IdpResponse response = IdpResponse.fromResultIntent(data);
-
             if (resultCode == RESULT_OK) {
                 // Successfully signed in
-                FirebaseUser user = mAuth.getCurrentUser();
+                user = mAuth.getCurrentUser();
                 if (user != null) {
                     Toast.makeText(this, "wellcome " + user.getDisplayName(), Toast.LENGTH_SHORT).show();
                     author = user.getDisplayName();
