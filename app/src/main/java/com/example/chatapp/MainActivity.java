@@ -139,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onSuccess(DocumentReference documentReference) {
                             recyclerViewMessage.scrollToPosition(adapter.getItemCount() - 1);
-                            Toast.makeText(MainActivity.this, "succes " + author, Toast.LENGTH_SHORT).show();
+                            //Toast.makeText(MainActivity.this, "succes " + author, Toast.LENGTH_SHORT).show();
                             editTextMessage.setText("");
                         }
                     }).addOnFailureListener(new OnFailureListener() {
@@ -176,15 +176,13 @@ public class MainActivity extends AppCompatActivity {
                                 Uri downloadUri = task.getResult();
                                 assert downloadUri != null;
                                 Log.i("dfsdfgs", downloadUri.toString());
-
-
                                 db.collection("messages")
                                         .add(new Message(author, downloadUri.toString(), System.currentTimeMillis()))
                                         .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                                             @Override
                                             public void onSuccess(DocumentReference documentReference) {
                                                 recyclerViewMessage.scrollToPosition(adapter.getItemCount() - 1);
-                                                Toast.makeText(MainActivity.this, "success", Toast.LENGTH_SHORT).show();
+                                            //    Toast.makeText(MainActivity.this, "success", Toast.LENGTH_SHORT).show();
                                             }
                                         }).addOnFailureListener(new OnFailureListener() {
                                     @Override
@@ -192,8 +190,6 @@ public class MainActivity extends AppCompatActivity {
                                         Toast.makeText(MainActivity.this, "Fail", Toast.LENGTH_SHORT).show();
                                     }
                                 });
-
-
                             } else {
                                 // Handle failures
                                 // ...
@@ -209,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
                 // Successfully signed in
                 user = mAuth.getCurrentUser();
                 if (user != null) {
-                    Toast.makeText(this, "wellcome " + user.getDisplayName(), Toast.LENGTH_SHORT).show();
+                  //  Toast.makeText(this, "welcome " + user.getDisplayName(), Toast.LENGTH_SHORT).show();
                     author = user.getDisplayName();
                 }
                 // ...

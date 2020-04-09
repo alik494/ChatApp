@@ -46,10 +46,8 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
     public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
             holder.textViewAuthor.setText(messages.get(position).getAuthor());
             Picasso.get().load(messages.get(position).getMessage()).into(holder.imageViewSmallPoster);
-
             if (holder.imageViewSmallPoster.getDrawable()==null){
             holder.textViewMessage.setText(messages.get(position).getMessage());
-
             }
 
     }
