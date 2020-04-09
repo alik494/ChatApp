@@ -16,14 +16,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageViewHolder>  {
+public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageViewHolder> {
 
     private List<Message> messages;
 
 
-
-    public MessageAdapter(){
-        messages=new ArrayList<>();
+    public MessageAdapter() {
+        messages = new ArrayList<>();
     }
 
     public List<Message> getMessages() {
@@ -38,17 +37,29 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
     @NonNull
     @Override
     public MessageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view= LayoutInflater.from(parent.getContext()).inflate(R.layout.message_item,parent,false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.message_item, parent, false);
         return new MessageViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
-            holder.textViewAuthor.setText(messages.get(position).getAuthor());
-            Picasso.get().load(messages.get(position).getMessage()).into(holder.imageViewSmallPoster);
-            if (holder.imageViewSmallPoster.getDrawable()==null){
-            holder.textViewMessage.setText(messages.get(position).getMessage());
-            }
+        Message message = messages.get(position);
+        String author = message.getAuthor();
+        String textOfMessage = message.getMessage();
+        String urlToImage = message.getImageURl();
+        holder.textViewAuthor.setText(author);
+        if (urlToImage == null || urlToImage.isEmpty()) {
+            holder.imageViewSmallPoster.setVisibility(View.GONE);
+        } else {
+            holder.imageViewSmallPoster.setVisibility(View.VISIBLE);
+        }
+        if (textOfMessage != null && !textOfMessage.isEmpty()) {
+            holder.textViewMessage.setText(textOfMessage);
+        }
+
+        if (urlToImage != null && !urlToImage.isEmpty()) {
+            Picasso.get().load(urlToImage).into(holder.imageViewSmallPoster);
+        }
 
     }
 
@@ -57,7 +68,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
         return messages.size();
     }
 
-    class MessageViewHolder extends RecyclerView.ViewHolder{
+    class MessageViewHolder extends RecyclerView.ViewHolder {
 
         private TextView textViewAuthor;
         private TextView textViewMessage;
@@ -65,9 +76,9 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
 
         public MessageViewHolder(@NonNull View itemView) {
             super(itemView);
-            textViewAuthor=itemView.findViewById(R.id.textViewAuthor);
-            textViewMessage=itemView.findViewById(R.id.textViewMessage);
-            imageViewSmallPoster=itemView.findViewById(R.id.imageViewSmallPoster);
+            textViewAuthor = itemView.findViewById(R.id.textViewAuthor);
+            textViewMessage = itemView.findViewById(R.id.textViewMessage);
+            imageViewSmallPoster = itemView.findViewById(R.id.imageViewSmallPoster);
         }
     }
 }

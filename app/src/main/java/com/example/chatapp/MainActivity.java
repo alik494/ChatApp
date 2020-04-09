@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        db.collection("messages").orderBy("date").addSnapshotListener(new EventListener<QuerySnapshot>() {
+        db.collection("messages2").orderBy("date").addSnapshotListener(new EventListener<QuerySnapshot>() {
             @Override
             public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
                 if (queryDocumentSnapshots != null) {
@@ -132,9 +132,21 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClikcSendMessage(View view) {
         String textOfMessage = editTextMessage.getText().toString().trim();
-        if (!textOfMessage.isEmpty()) {
-            db.collection("messages")
-                    .add(new Message(author, textOfMessage, System.currentTimeMillis()))
+        sendMessage(textOfMessage,null);
+
+    }
+
+    private void sendMessage(String textOfMessage,String urlOfImage){
+        Message message =null;
+        if (textOfMessage!=null  && !textOfMessage.isEmpty()) {
+            message=new Message(author,textOfMessage,System.currentTimeMillis(),null);
+        }
+        else if(urlOfImage!=null&&!urlOfImage.isEmpty()){
+            message=new Message(author,null,System.currentTimeMillis(),urlOfImage);
+        }
+        if (message != null) {
+            db.collection("messages2")
+                    .add(message)
                     .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                         @Override
                         public void onSuccess(DocumentReference documentReference) {
@@ -174,22 +186,10 @@ public class MainActivity extends AppCompatActivity {
                         public void onComplete(@NonNull Task<Uri> task) {
                             if (task.isSuccessful()) {
                                 Uri downloadUri = task.getResult();
-                                assert downloadUri != null;
-                                Log.i("dfsdfgs", downloadUri.toString());
-                                db.collection("messages")
-                                        .add(new Message(author, downloadUri.toString(), System.currentTimeMillis()))
-                                        .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-                                            @Override
-                                            public void onSuccess(DocumentReference documentReference) {
-                                                recyclerViewMessage.scrollToPosition(adapter.getItemCount() - 1);
-                                            //    Toast.makeText(MainActivity.this, "success", Toast.LENGTH_SHORT).show();
-                                            }
-                                        }).addOnFailureListener(new OnFailureListener() {
-                                    @Override
-                                    public void onFailure(@NonNull Exception e) {
-                                        Toast.makeText(MainActivity.this, "Fail", Toast.LENGTH_SHORT).show();
-                                    }
-                                });
+                                if (downloadUri!=null) {
+                                    //Log.i("dfsdfgs", downloadUri.toString());
+                                    sendMessage(null, downloadUri.toString());
+                                }
                             } else {
                                 // Handle failures
                                 // ...
