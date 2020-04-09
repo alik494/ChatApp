@@ -57,7 +57,6 @@ public class MainActivity extends AppCompatActivity {
 
     private FirebaseAuth mAuth;
 
-
     private List<Message> messages;
     private String author;
 
