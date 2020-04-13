@@ -7,8 +7,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,47 +26,57 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
-import java.net.URI;
-import java.util.ArrayList;
+
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import com.firebase.client.ServerValue;
+
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int RC_SIGN_IN = 100;
     private static final int RC_GET_IMAGE = 101;
+    private FirebaseFirestore db;
+    private FirebaseAuth mAuth;
+    private FirebaseStorage storage;
+    private StorageReference reference;
+
     private RecyclerView recyclerViewMessage;
     private MessageAdapter adapter;
 
-    private FirebaseFirestore db;
-
     private EditText editTextMessage;
-    private ImageView imageViewAddImage;
     private ImageView imageViewSend;
-    private FirebaseStorage storage;
+    private ImageView imageViewAddImage;
+
+
     private FirebaseUser user;
-    private StorageReference reference;
 
-    private FirebaseAuth mAuth;
 
-    private List<Message> messages;
     private String author;
+    private SharedPreferences preferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
         recyclerViewMessage = findViewById(R.id.recyclerViewMessage);
         editTextMessage = findViewById(R.id.editTextMessage);
         imageViewSend = findViewById(R.id.imageViewSendMessage);
@@ -72,17 +84,18 @@ public class MainActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         storage = FirebaseStorage.getInstance();
         reference = storage.getReference();
+        preferences = PreferenceManager.getDefaultSharedPreferences(this);
         db = FirebaseFirestore.getInstance();
-        adapter = new MessageAdapter();
+        adapter = new MessageAdapter(this);
         recyclerViewMessage.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewMessage.setAdapter(adapter);
-        messages = new ArrayList<>();
+
         if (mAuth.getCurrentUser() != null) {
             user = mAuth.getCurrentUser();
             //Toast.makeText(this, "logged", Toast.LENGTH_SHORT).show();
             if (user != null) {
                 Toast.makeText(this, "welcome " + user.getDisplayName(), Toast.LENGTH_SHORT).show();
-                author = user.getDisplayName();
+                preferences.edit().putString("author", mAuth.getCurrentUser().getEmail()).apply();
             }
         } else {
             signOut();
@@ -102,13 +115,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        db.collection("messages2").orderBy("date").addSnapshotListener(new EventListener<QuerySnapshot>() {
+        db.collection("messages").orderBy("timestamp", Query.Direction.ASCENDING).addSnapshotListener(new EventListener<QuerySnapshot>() {
             @Override
             public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
                 if (queryDocumentSnapshots != null) {
-                    messages = queryDocumentSnapshots.toObjects(Message.class);
+                    List<Message> messages = queryDocumentSnapshots.toObjects(Message.class);
                     adapter.setMessages(messages);
-                    recyclerViewMessage.smoothScrollToPosition(adapter.getItemCount() - 1);
+                    if (!messages.isEmpty()) {
+                        recyclerViewMessage.smoothScrollToPosition(adapter.getItemCount() - 1);
+                    }
                 }
             }
         });
@@ -132,26 +147,28 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClikcSendMessage(View view) {
         String textOfMessage = editTextMessage.getText().toString().trim();
-        sendMessage(textOfMessage,null);
+        sendMessage(textOfMessage, null);
 
     }
 
-    private void sendMessage(String textOfMessage,String urlOfImage){
-        Message message =null;
-        if (textOfMessage!=null  && !textOfMessage.isEmpty()) {
-            message=new Message(author,textOfMessage,System.currentTimeMillis(),null);
-        }
-        else if(urlOfImage!=null&&!urlOfImage.isEmpty()){
-            message=new Message(author,null,System.currentTimeMillis(),urlOfImage);
+
+    private void sendMessage(String textOfMessage, String urlOfImage) {
+        Message message = null;
+
+        String author = preferences.getString("author", "Anonim");
+        if (textOfMessage != null && !textOfMessage.isEmpty()) {
+            message = new Message(author, textOfMessage, null, null);
+        } else if (urlOfImage != null && !urlOfImage.isEmpty()) {
+            message = new Message(author, null, null, urlOfImage);
         }
         if (message != null) {
-            db.collection("messages2")
+            db.collection("messages")
                     .add(message)
                     .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                         @Override
                         public void onSuccess(DocumentReference documentReference) {
                             recyclerViewMessage.scrollToPosition(adapter.getItemCount() - 1);
-                            //Toast.makeText(MainActivity.this, "succes " + author, Toast.LENGTH_SHORT).show();
+                            //Toast.makeText(MainActivity.this, "success" + author, Toast.LENGTH_SHORT).show();
                             editTextMessage.setText("");
                         }
                     }).addOnFailureListener(new OnFailureListener() {
@@ -186,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
                         public void onComplete(@NonNull Task<Uri> task) {
                             if (task.isSuccessful()) {
                                 Uri downloadUri = task.getResult();
-                                if (downloadUri!=null) {
+                                if (downloadUri != null) {
                                     //Log.i("dfsdfgs", downloadUri.toString());
                                     sendMessage(null, downloadUri.toString());
                                 }
@@ -205,8 +222,8 @@ public class MainActivity extends AppCompatActivity {
                 // Successfully signed in
                 user = mAuth.getCurrentUser();
                 if (user != null) {
-                  //  Toast.makeText(this, "welcome " + user.getDisplayName(), Toast.LENGTH_SHORT).show();
-                    author = user.getDisplayName();
+                    //  Toast.makeText(this, "welcome " + user.getDisplayName(), Toast.LENGTH_SHORT).show();
+                    preferences.edit().putString("author", user.getEmail()).apply();
                 }
                 // ...
             } else {
@@ -231,7 +248,6 @@ public class MainActivity extends AppCompatActivity {
                     List<AuthUI.IdpConfig> providers = Arrays.asList(
                             new AuthUI.IdpConfig.EmailBuilder().build(),
                             new AuthUI.IdpConfig.GoogleBuilder().build());
-// Create and launch sign-in intent
                     startActivityForResult(
                             AuthUI.getInstance()
                                     .createSignInIntentBuilder()
